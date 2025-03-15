@@ -18,4 +18,7 @@ let load_rom memory (rom: Rom.t) =
   ) rom.data; 
   memory
 
-let read_at_address memory address = memory.ram.(address)
+let read_at_address memory address = 
+  let first_byte = memory.ram.(address) lsl 8 in
+  let second_byte = memory.ram.(address + 1) in
+  first_byte lor second_byte
