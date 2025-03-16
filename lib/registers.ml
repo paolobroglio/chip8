@@ -13,10 +13,10 @@ let create () = {
 
 let set reg index value = 
   if index < 0 || index >= 16 then
-    reg
+    failwith "Register index must be between V0 and VF"
   else
     let reg_state = { v = Array.copy reg.v; sp = reg.sp; stack = reg.stack} in
-    reg_state.v.(index) <- value land 0xFF;
+    reg_state.v.(index) <- value;
     reg_state
 
 let get reg index = reg.v.(index)

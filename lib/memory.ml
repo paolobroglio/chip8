@@ -8,6 +8,12 @@ let create () = {
   ram = Array.make 4096 0;
 }
 
+let set_byte memory address byte =
+  memory.ram.(address) <- byte
+
+let get_byte memory address =
+  memory.ram.(address)
+
 let load_rom memory (rom: Rom.t) = 
   let start_addr = 0x200 in
   Array.iteri (fun i byte ->
