@@ -16,7 +16,7 @@ let create () = {
 
 let step cpu (memory: Memory.t) = 
   let instruction = Memory.read_at_address memory cpu.pc in
-  Printf.printf "PC: 0x%04X - Instruction: 0x%04X\n" cpu.pc instruction;
+  Printf.printf "PC: 0x%04X - Fetched Instruction: 0x%04X\n" cpu.pc instruction;
   {
   i_register = cpu.i_register;
   v_registers = cpu.v_registers;

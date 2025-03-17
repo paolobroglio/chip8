@@ -8,6 +8,12 @@ let create () = {
   ram = Array.make 4096 0;
 }
 
+let set_byte memory address byte =
+  memory.ram.(address) <- byte
+
+let get_byte memory address =
+  memory.ram.(address)
+
 let load_rom memory (rom: Rom.t) = 
   let start_addr = 0x200 in
   Array.iteri (fun i byte ->
@@ -18,4 +24,7 @@ let load_rom memory (rom: Rom.t) =
   ) rom.data; 
   memory
 
-let read_at_address memory address = memory.ram.(address)
+let read_at_address memory address = 
+  let first_byte = memory.ram.(address) lsl 8 in
+  let second_byte = memory.ram.(address + 1) in
+  first_byte lor second_byte
