@@ -14,6 +14,17 @@ let set_byte memory address byte =
 let get_byte memory address =
   memory.ram.(address)
 
+let load_font memory =
+  let font = Font.make in
+  let start_addr = 0x050 in
+  Array.iteri (fun i byte ->
+    if start_addr + i < Array.length memory.ram then
+      memory.ram.(start_addr + i) <- byte
+    else
+      failwith "Memory overflow while loading ROM"
+  ) font.fontset; 
+  memory
+
 let load_rom memory (rom: Rom.t) = 
   let start_addr = 0x200 in
   Array.iteri (fun i byte ->
