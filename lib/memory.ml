@@ -12,7 +12,10 @@ let set_byte memory address byte =
   memory.ram.(address) <- byte
 
 let get_byte memory address =
-  memory.ram.(address)
+  if address >= Array.length memory.ram then
+    failwith "Memory overflow when requesting value"
+  else
+    memory.ram.(address)
 
 let load_font memory =
   let font = Font.make in

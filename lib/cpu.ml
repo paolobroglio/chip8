@@ -48,36 +48,44 @@ let execute_0xAnnn_opcode cpu instruction =
   cpu.pc <- cpu.pc + 2;
   ()
 
-  let execute_0xDxyn_opcode cpu memory display instruction =
-    let vx = (instruction land 0x0F00) lsr 8 in
-    let vy = (instruction land 0x00F0) lsr 4 in
-    let n = instruction land 0x000F in
-    let x_pos = Registers.get cpu.v_registers vx in
-    let y_pos = Registers.get cpu.v_registers vy in
+let execute_0xDxyn_opcode cpu memory display instruction =
+  let vx = (instruction land 0x0F00) lsr 8 in
+  let vy = (instruction land 0x00F0) lsr 4 in
+  let height = instruction land 0x000F in
+  let x_pos = Registers.get cpu.v_registers vx in
+  let y_pos = Registers.get cpu.v_registers vy in
+
+  (* Reset collision flag *)
+  Registers.set cpu.v_registers 0xF 0;
+  let collision = ref false in
+
+  (* Loop over sprite height *)
+  for yline = 0 to height - 1 do
+    (* Ensure memory access is in bounds *)
+    if cpu.i_register + yline < 4096 then begin
+      let sprite_byte = Memory.get_byte memory (cpu.i_register + yline) in
+
+      (* Loop over sprite width (always 8 pixels) *)
+      for xline = 0 to 7 do
+        let sprite_pixel = (sprite_byte land (0x80 lsr xline)) <> 0 in
+        let screen_x = x_pos + xline in
+        let screen_y = y_pos + yline in
+
+        if sprite_pixel then begin
+          if Display.cell_at display screen_x screen_y then collision := true;
+          Display.set_cell_at display screen_x screen_y (not (Display.cell_at display screen_x screen_y));
+        end;
+      done;
+    end;
+  done;
+
+  (* Set VF register to 1 if there was a collision *)
+  if !collision then Registers.set cpu.v_registers 0xF 1;
+
+  (* Move to next instruction *)
+  cpu.pc <- cpu.pc + 2;
+  ()
   
-    Registers.set cpu.v_registers 0xF 0; (* Reset collision flag *)
-  
-    for yline = 0 to n - 1 do
-      if cpu.i_register + yline >= 0 && cpu.i_register + yline < 4096 then
-        let sprite_byte = Memory.get_byte memory (cpu.i_register + yline) in
-        for xline = 0 to 7 do
-          let sprite_pixel = (sprite_byte land (0x80 lsr xline)) <> 0 in
-          let screen_x = (x_pos + xline) mod 64 in
-          let screen_y = (y_pos + yline) mod 32 in
-          let screen_pixel = Display.cell_at display screen_y screen_x in
-  
-          if sprite_pixel then
-            if screen_pixel then
-              Registers.set cpu.v_registers 0xF 1;
-            Display.set_cell_at display screen_y screen_x (not screen_pixel)
-        done
-      else
-        (* Handle out-of-bounds memory access *)
-        ()
-    done;
-  
-    cpu.pc <- cpu.pc + 2;
-    ()
   
 
 let execute_opcode cpu memory display instruction = 
