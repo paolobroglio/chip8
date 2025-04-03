@@ -119,20 +119,39 @@ let execute_0x8_opcode cpu instruction =
   | 0x0007 ->
     let vy = Registers.get cpu.v_registers y in
     let vx = Registers.get cpu.v_registers x in
-    let sub_vy_vx = vy - vx in
-    if vy > vx then
-      Registers.set cpu.v_registers 0xF 1
-    else
-      Registers.set cpu.v_registers 0xF 0;
-    Registers.set cpu.v_registers x sub_vy_vx
+    Registers.set cpu.v_registers 0xF (if vy > vx then 1 else 0);
+    Registers.set cpu.v_registers x ((vy - vx) land 0xFF);
   | 0x000E ->
     let vx = Registers.get cpu.v_registers x in
     Registers.set cpu.v_registers 0xF ((vx land 0x80) lsr 7);
     Registers.set cpu.v_registers x ((vx lsl 1) land 0xFF)
   | _ -> ()
 
+let execute_0x9xy0_opcode cpu instruction =
+  let x = (instruction land 0x0F00) lsr 8 in
+  let y = (instruction land 0x00F0) lsr 4 in
+  let vy = Registers.get cpu.v_registers y in
+  let vx = Registers.get cpu.v_registers x in
+  if vx != vy then
+    cpu.pc <- cpu.pc + 4
+  else
+    cpu.pc <- cpu.pc + 2
+
 let execute_0xAnnn_opcode cpu instruction =
   cpu.i_register <- (instruction land 0x0FFF);
+  cpu.pc <- cpu.pc + 2;
+  ()
+
+let execute_0xBnnn_opcode cpu instruction =
+  let v0 = Registers.get cpu.v_registers 0 in
+  cpu.pc <- ((instruction land 0x0FFF) + v0);
+  ()
+
+let execute_0x_Cxkk_opcode cpu instruction =
+  let x = (instruction land 0x0F00) lsr 8 in
+  let kk = (instruction land 0x00FF) in
+  let rnd = (Random.int 256) land kk in
+  Registers.set cpu.v_registers x rnd;
   cpu.pc <- cpu.pc + 2;
   ()
 
@@ -197,8 +216,14 @@ let execute_opcode cpu memory display instruction =
   | 0x8000 ->
     execute_0x8_opcode cpu instruction;
     cpu.pc <- cpu.pc + 2;
+  | 0x9000 ->
+    execute_0x9xy0_opcode cpu instruction;
   | 0xA000 ->
     execute_0xAnnn_opcode cpu instruction;
+  | 0xB000 ->
+    execute_0xBnnn_opcode cpu instruction;
+  | 0xC000 ->
+    execute_0x_Cxkk_opcode cpu instruction;
   | 0xD000 ->
     execute_0xDxyn_opcode cpu memory display instruction;
   | _ ->
