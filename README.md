@@ -14,7 +14,7 @@
 
 - [x] Chip8 Logo
 - [x] IBM Logo
-- [ ] Corax+
+- [x] Corax+
 - [ ] Flags
 - [ ] Quirks
 - [ ] Keypad
