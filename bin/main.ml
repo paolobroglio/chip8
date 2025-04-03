@@ -1,13 +1,30 @@
 open Raylib
 open Chip8
 
+let usage_msg = "chip8 [-verbose] <rom_file>"
+let verbose = ref false
+let input_files = ref []
+let anon_fun filename = input_files := filename :: !input_files
+
+let speclist = 
+  [("-verbose", Arg.Set verbose, "Debug logs")]
+
+let get_rom list_ref index =
+  try
+    List.nth !list_ref index
+  with
+  | Failure _ -> failwith "ROM file not provided!"
+
 let main () =
+  Arg.parse speclist anon_fun usage_msg;
+  let rom_file = get_rom input_files 0 in
+
   Raylib.init_window 640 320 "CHIP-8 Emulator";
   Raylib.set_target_fps 60;
 
   (* CHIP-8 Setup *)
   let cpu = Cpu.create () in
-  let rom = Rom.read "roms/IBM_Logo.ch8" in
+  let rom = Rom.read rom_file in
   let memory = 
     let mem = Memory.create () in
     Memory.load_rom mem rom |> Memory.load_font
