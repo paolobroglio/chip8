@@ -3,7 +3,7 @@ type t = {
   v_registers: Registers.t;
   mutable pc: int;
   mutable sp : int;
-  mutable stack : int array;
+  mutable stack : int Stack.t;
   mutable delay_timer: int;
   mutable sound_timer: int;
 }
@@ -13,7 +13,7 @@ let create () = {
   v_registers = Registers.create ();
   pc = 0x200;
   sp = 0;
-  stack = Array.make 16 0;
+  stack = Stack.create ();
   delay_timer = 0;
   sound_timer = 0;
 }
@@ -23,11 +23,46 @@ let execute_0x0_opcode cpu display instruction =
   | 0x00E0 ->
     Display.clear display;
     cpu.pc <- cpu.pc + 2;
+  | 0x00EE ->
+    let proc_pointer = Stack.pop cpu.stack in
+    cpu.pc <- proc_pointer; 
+    cpu.sp <- cpu.sp - 1;
   | _ -> ()
 
-let execute_0x1_opcode cpu instruction =
+let execute_0x1nnn_opcode cpu instruction =
   cpu.pc <- (instruction land 0x0FFF);
   ()
+
+let execute_0x2nnn_opcode cpu instruction =
+  let nnn = (instruction land 0x0FFF) in
+  cpu.pc <- cpu.pc + 2;
+  Stack.push cpu.pc cpu.stack;
+  cpu.pc <- nnn;
+  ()
+
+let execute_0x3xkk_opcode cpu instruction =
+  let x = (instruction land 0x0F00) lsr 8 in
+  let kk = (instruction land 0x00FF) in
+  if Registers.contains cpu.v_registers x kk then
+    cpu.pc <- cpu.pc + 4
+  else
+    cpu.pc <- cpu.pc + 2
+
+let execute_0x4xkk_opcode cpu instruction =
+  let x = (instruction land 0x0F00) lsr 8 in
+  let kk = (instruction land 0x00FF) in
+  if not (Registers.contains cpu.v_registers x kk) then
+    cpu.pc <- cpu.pc + 4
+  else
+    cpu.pc <- cpu.pc + 2
+
+let execute_0x5xy0_opcode cpu instruction =
+  let x = (instruction land 0x0F00) lsr 8 in
+  let y = (instruction land 0x00F0) lsr 4 in
+  if Registers.are_equal cpu.v_registers x y then
+    cpu.pc <- cpu.pc + 4
+  else
+    cpu.pc <- cpu.pc + 2
 
 let execute_0x6xkk_opcode cpu instruction =
   let x = (instruction land 0x0F00) lsr 8 in
@@ -42,6 +77,28 @@ let execute_0x7xkk_opcode cpu instruction =
   Registers.add_value cpu.v_registers x kk;
   cpu.pc <- cpu.pc + 2;
   ()
+
+let execute_0x8_opcode instruction =
+  match (instruction land 0x000F) with
+  | 0x0000 ->
+    ()
+  | 0x0001 ->
+    ()
+  | 0x0002 ->
+    ()
+  | 0x0003 ->
+    ()
+  | 0x0004 ->
+    ()
+  | 0x0005 ->
+    ()
+  | 0x0006 ->
+    ()
+  | 0x0007 ->
+    ()
+  | 0x000E ->
+    ()  
+  | _ -> ()
 
 let execute_0xAnnn_opcode cpu instruction =
   cpu.i_register <- (instruction land 0x0FFF);
@@ -93,11 +150,21 @@ let execute_opcode cpu memory display instruction =
   | 0x0000 ->
     execute_0x0_opcode cpu display instruction;
   | 0x1000 ->
-    execute_0x1_opcode cpu instruction;
+    execute_0x1nnn_opcode cpu instruction;
+  | 0x2000 ->
+    execute_0x2nnn_opcode cpu instruction;
+  | 0x3000 ->
+    execute_0x3xkk_opcode cpu instruction;
+  | 0x4000 ->
+    execute_0x4xkk_opcode cpu instruction;
+  | 0x5000 ->
+    execute_0x5xy0_opcode cpu instruction;
   | 0x6000 ->
     execute_0x6xkk_opcode cpu instruction;
   | 0x7000 ->
     execute_0x7xkk_opcode cpu instruction;
+  | 0x8000 ->
+    execute_0x8_opcode instruction;
   | 0xA000 ->
     execute_0xAnnn_opcode cpu instruction;
   | 0xD000 ->
