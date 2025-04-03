@@ -192,10 +192,59 @@ let execute_0xDxyn_opcode cpu memory display instruction =
   (* Move to next instruction *)
   cpu.pc <- cpu.pc + 2;
   ()
-  
-  
 
-let execute_opcode cpu memory display instruction = 
+let execute_0xE_opcode cpu keypad instruction =
+  let x = (instruction land 0x0F00) lsr 8 in
+  let key_index = Registers.get cpu.v_registers x in 
+  match (instruction land 0xF0FF) with
+  | 0xE09E when Keypad.is_key_pressed keypad key_index ->
+      cpu.pc <- cpu.pc + 4
+  | 0xE0A1 when not (Keypad.is_key_pressed keypad key_index) ->
+      cpu.pc <- cpu.pc + 4 
+  | _ ->
+      cpu.pc <- cpu.pc + 2
+  
+let execute_0xF_opcode cpu memory keypad instruction =
+  let x = (instruction land 0x0F00) lsr 8 in
+  let vx = Registers.get cpu.v_registers x in
+  match (instruction land 0xF0FF) with
+  | 0xF007 ->
+    Registers.set cpu.v_registers x cpu.delay_timer;
+  | 0xF00A ->
+    let rec wait_for_key () =
+      match Keypad.get_first_key_pressed keypad with
+      | Some key -> Registers.set cpu.v_registers x key  (* Store key in Vx *)
+      | None -> wait_for_key ()  (* Keep looping if no key is pressed *)
+    in
+    wait_for_key ();
+  | 0xF015 ->
+    cpu.delay_timer <- vx;
+  | 0xF018 ->
+    cpu.sound_timer <- vx;
+  | 0xF01E ->
+    cpu.i_register <- cpu.i_register + vx;
+  | 0xF029 ->
+    cpu.i_register <- 0x050 + vx * 5 (* correct value should be computed either by memory or by font *)
+  | 0xF033 ->
+    (* Store the hundreds digit at I *)
+    Memory.set_byte memory cpu.i_register (vx / 100);
+    (* Store the tens digit at I + 1 *)
+    Memory.set_byte memory (cpu.i_register + 1) ((vx / 10) mod 10);
+    (* Store the ones digit at I + 2 *)
+    Memory.set_byte memory (cpu.i_register + 2) (vx mod 10);
+  | 0xF055 ->
+    (* Store values from V0 to Vx in memory starting at I *)
+    for i = 0 to x do
+      Memory.set_byte memory (cpu.i_register + i) (Registers.get cpu.v_registers i)
+    done;
+  | 0xF065 ->
+    (* Load values from memory starting at I into registers V0 to Vx *)
+    for i = 0 to x do
+      Registers.set cpu.v_registers i (Memory.get_byte memory (cpu.i_register + i))
+    done;
+  | _ -> ()
+
+let execute_opcode cpu memory display keypad instruction = 
   match (instruction land 0xF000) with
   | 0x0000 ->
     execute_0x0_opcode cpu display instruction;
@@ -226,11 +275,16 @@ let execute_opcode cpu memory display instruction =
     execute_0x_Cxkk_opcode cpu instruction;
   | 0xD000 ->
     execute_0xDxyn_opcode cpu memory display instruction;
+  | 0xE000 ->
+    execute_0xE_opcode cpu keypad instruction;
+  | 0xF000 ->
+    execute_0xF_opcode cpu memory keypad instruction;
+    cpu.pc <- cpu.pc + 2;
   | _ ->
     cpu.pc <- cpu.pc + 2;
     ()
 
 
-let step cpu (memory: Memory.t) (display: Display.t) = 
+let step cpu (memory: Memory.t) (display: Display.t) (keypad: Keypad.t) = 
   let instruction = Memory.read_at_address memory cpu.pc in
-  execute_opcode cpu memory display instruction;
+  execute_opcode cpu memory display keypad instruction;

@@ -23,6 +23,7 @@ let main () =
   Raylib.set_target_fps 60;
 
   (* CHIP-8 Setup *)
+  let keypad = Keypad.create () in
   let cpu = Cpu.create () in
   let rom = Rom.read rom_file in
   let memory = 
@@ -36,11 +37,34 @@ let main () =
       Raylib.close_window ()
     else
       begin
+        (* Update Keypad *)
+        Keypad.reset keypad;  (* Clear previous key states *)
+
+        if Raylib.is_key_down Key.One then Keypad.set_key_pressed keypad 0x1;
+        if Raylib.is_key_down Key.Two then Keypad.set_key_pressed keypad 0x2;
+        if Raylib.is_key_down Key.Three then Keypad.set_key_pressed keypad 0x3;
+        if Raylib.is_key_down Key.Four then Keypad.set_key_pressed keypad 0xC;
         
+        if Raylib.is_key_down Key.Q then Keypad.set_key_pressed keypad 0x4;
+        if Raylib.is_key_down Key.W then Keypad.set_key_pressed keypad 0x5;
+        if Raylib.is_key_down Key.E then Keypad.set_key_pressed keypad 0x6;
+        if Raylib.is_key_down Key.R then Keypad.set_key_pressed keypad 0xD;
+
+        if Raylib.is_key_down Key.A then Keypad.set_key_pressed keypad 0x7;
+        if Raylib.is_key_down Key.S then Keypad.set_key_pressed keypad 0x8;
+        if Raylib.is_key_down Key.D then Keypad.set_key_pressed keypad 0x9;
+        if Raylib.is_key_down Key.F then Keypad.set_key_pressed keypad 0xE;
+
+        if Raylib.is_key_down Key.Z then Keypad.set_key_pressed keypad 0xA;
+        if Raylib.is_key_down Key.X then Keypad.set_key_pressed keypad 0x0;
+        if Raylib.is_key_down Key.C then Keypad.set_key_pressed keypad 0xB;
+        if Raylib.is_key_down Key.V then Keypad.set_key_pressed keypad 0xF;
+
+        (* CPU Step is executed *)
         let elapsed_time = Raylib.get_frame_time () in
         let instructions_per_frame = 10 in
         for _ = 1 to instructions_per_frame do
-          Cpu.step cpu memory display;
+          Cpu.step cpu memory display keypad;
         done;
 
         (* Update timers *)

@@ -1,14 +1,10 @@
 
 type t = {
   mutable v : int array;
-  sp : int;
-  mutable stack : int array;
 }
 
 let create () = {
   v = Array.make 16 0;
-  sp = 0;
-  stack = Array.make 16 0;
 }
 
 let set reg index value = 
