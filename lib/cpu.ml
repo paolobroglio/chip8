@@ -74,30 +74,61 @@ let execute_0x6xkk_opcode cpu instruction =
 let execute_0x7xkk_opcode cpu instruction =
   let x = (instruction land 0x0F00) lsr 8 in
   let kk = (instruction land 0x00FF) in
-  Registers.add_value cpu.v_registers x kk;
+  let vx = Registers.get cpu.v_registers x in
+  Registers.set cpu.v_registers x ((vx + kk) land 0xFF);
   cpu.pc <- cpu.pc + 2;
   ()
 
-let execute_0x8_opcode instruction =
+let execute_0x8_opcode cpu instruction =
+  let x = (instruction land 0x0F00) lsr 8 in
+  let y = (instruction land 0x00F0) lsr 4 in
   match (instruction land 0x000F) with
   | 0x0000 ->
-    ()
+    let vy = Registers.get cpu.v_registers y in
+    Registers.set cpu.v_registers x vy;
   | 0x0001 ->
-    ()
+    let vy = Registers.get cpu.v_registers y in
+    let vx = Registers.get cpu.v_registers x in
+    Registers.set cpu.v_registers x (vx lor vy);
   | 0x0002 ->
-    ()
+    let vy = Registers.get cpu.v_registers y in
+    let vx = Registers.get cpu.v_registers x in
+    Registers.set cpu.v_registers x (vx land vy);
   | 0x0003 ->
-    ()
+    let vy = Registers.get cpu.v_registers y in
+    let vx = Registers.get cpu.v_registers x in
+    Registers.set cpu.v_registers x (vx lxor vy);
   | 0x0004 ->
-    ()
+    let vy = Registers.get cpu.v_registers y in
+    let vx = Registers.get cpu.v_registers x in
+    let sum_vx_vy = vx + vy in
+    if sum_vx_vy > 255 then
+      Registers.set cpu.v_registers 0xF 1
+    else
+      Registers.set cpu.v_registers 0xF 0;
+    Registers.set cpu.v_registers x (sum_vx_vy land 0xFF)
   | 0x0005 ->
-    ()
+    let vy = Registers.get cpu.v_registers y in
+    let vx = Registers.get cpu.v_registers x in
+    Registers.set cpu.v_registers 0xF (if vx > vy then 1 else 0);
+    Registers.set cpu.v_registers x ((vx - vy) land 0xFF);
   | 0x0006 ->
-    ()
+    let vx = Registers.get cpu.v_registers x in
+    Registers.set cpu.v_registers 0xF (vx land 0x1);
+    Registers.set cpu.v_registers x (vx lsr 1);
   | 0x0007 ->
-    ()
+    let vy = Registers.get cpu.v_registers y in
+    let vx = Registers.get cpu.v_registers x in
+    let sub_vy_vx = vy - vx in
+    if vy > vx then
+      Registers.set cpu.v_registers 0xF 1
+    else
+      Registers.set cpu.v_registers 0xF 0;
+    Registers.set cpu.v_registers x sub_vy_vx
   | 0x000E ->
-    ()  
+    let vx = Registers.get cpu.v_registers x in
+    Registers.set cpu.v_registers 0xF ((vx land 0x80) lsr 7);
+    Registers.set cpu.v_registers x ((vx lsl 1) land 0xFF)
   | _ -> ()
 
 let execute_0xAnnn_opcode cpu instruction =
@@ -164,7 +195,8 @@ let execute_opcode cpu memory display instruction =
   | 0x7000 ->
     execute_0x7xkk_opcode cpu instruction;
   | 0x8000 ->
-    execute_0x8_opcode instruction;
+    execute_0x8_opcode cpu instruction;
+    cpu.pc <- cpu.pc + 2;
   | 0xA000 ->
     execute_0xAnnn_opcode cpu instruction;
   | 0xD000 ->
