@@ -99,22 +99,21 @@ let execute_0x8_opcode cpu instruction =
     let vx = Registers.get cpu.v_registers x in
     Registers.set cpu.v_registers x (vx lxor vy);
   | 0x0004 ->
-    let vy = Registers.get cpu.v_registers y in
     let vx = Registers.get cpu.v_registers x in
+    let vy = Registers.get cpu.v_registers y in
     let sum_vx_vy = vx + vy in
-    if sum_vx_vy > 255 then
-      Registers.set cpu.v_registers 0xF 1
-    else
-      Registers.set cpu.v_registers 0xF 0;
-    Registers.set cpu.v_registers x (sum_vx_vy land 0xFF)
+    Registers.set cpu.v_registers x (sum_vx_vy land 0xFF);
+    Registers.set cpu.v_registers 0xF ((sum_vx_vy lsr 8) land 1);
   | 0x0005 ->
     let vy = Registers.get cpu.v_registers y in
     let vx = Registers.get cpu.v_registers x in
-    Registers.set cpu.v_registers 0xF (if vx > vy then 1 else 0);
-    Registers.set cpu.v_registers x ((vx - vy) land 0xFF);
+    let diff = vx - vy in
+    Registers.set cpu.v_registers x (diff land 0xFF);
+    Registers.set cpu.v_registers 0xF (if vx >= vy then 1 else 0);
   | 0x0006 ->
     let vx = Registers.get cpu.v_registers x in
-    Registers.set cpu.v_registers 0xF (vx land 0x1);
+    let lsb = vx land 0x1 in
+    Registers.set cpu.v_registers 0xF (if lsb == 1 then 1 else 0);
     Registers.set cpu.v_registers x (vx lsr 1);
   | 0x0007 ->
     let vy = Registers.get cpu.v_registers y in
