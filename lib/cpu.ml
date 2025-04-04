@@ -112,18 +112,20 @@ let execute_0x8_opcode cpu instruction =
     Registers.set cpu.v_registers 0xF (if vx >= vy then 1 else 0);
   | 0x0006 ->
     let vx = Registers.get cpu.v_registers x in
-    let lsb = vx land 0x1 in
-    Registers.set cpu.v_registers 0xF (if lsb == 1 then 1 else 0);
-    Registers.set cpu.v_registers x (vx lsr 1);
+    let ls_bit = vx land 0x1 in
+    let new_vx = vx lsr 1 in
+    Registers.set cpu.v_registers x new_vx;
+    Registers.set cpu.v_registers 0xF ls_bit;
   | 0x0007 ->
     let vy = Registers.get cpu.v_registers y in
     let vx = Registers.get cpu.v_registers x in
-    Registers.set cpu.v_registers 0xF (if vy > vx then 1 else 0);
-    Registers.set cpu.v_registers x ((vy - vx) land 0xFF);
+    let diff = vy - vx in
+    Registers.set cpu.v_registers x (diff land 0xFF);
+    Registers.set cpu.v_registers 0xF (if vy >= vx then 1 else 0);
   | 0x000E ->
     let vx = Registers.get cpu.v_registers x in
+    Registers.set cpu.v_registers x ((vx lsl 1) land 0xFF);
     Registers.set cpu.v_registers 0xF ((vx land 0x80) lsr 7);
-    Registers.set cpu.v_registers x ((vx lsl 1) land 0xFF)
   | _ -> ()
 
 let execute_0x9xy0_opcode cpu instruction =
